@@ -3,6 +3,7 @@ import { ethers, fhevm } from "hardhat";
 import { FHECounter, FHECounter__factory } from "../types";
 import { expect } from "chai";
 import { FhevmType } from "@fhevm/hardhat-plugin";
+import "@typechain/hardhat";
 
 type Signers = {
   deployer: HardhatEthersSigner;
