@@ -47,3 +47,5 @@ winning. To resolve the game, a boolean `AND` operation is performed on an `euin
 14th bits set to one (equivalent to the decimal number 17024) and another `euint16` variable with only the bit
 corresponding to its packed move set to 1. If the result of this operation is `0`, the host won; otherwise, the guest
 won the game.
+
+[![GitBook](https://img.shields.io/static/v1?message=Documented%20on%20GitBook&logo=gitbook&logoColor=ffffff&label=%20&labelColor=5c5c5c&color=3F89A1)](https://www.gitbook.com/preview?utm_source=gitbook_readme_badge&utm_medium=organic&utm_campaign=preview_documentation&utm_content=link)
