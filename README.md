@@ -48,4 +48,138 @@ winning. To resolve the game, a boolean `AND` operation is performed on an `euin
 corresponding to its packed move set to 1. If the result of this operation is `0`, the host won; otherwise, the guest
 won the game.
 
+## dApp Integration Guide
+
+Developers building decentralized applications (dApps) on top of the `FHERPS` smart contract should consider the following:
+
+1.  **Input Validation is Crucial:** The smart contract intentionally skips move validation (checking if the input is 1, 2, or 3) to save on HCU costs. This means your dApp **must** validate user input *before* encrypting it and sending it to the contract. If an invalid value is submitted, the contract will not revert, but the game logic will produce an incorrect result.
+
+2.  **Asynchronous Game Flow and Event Handling:** The contract's functions do not return values like the `gameId`. Your dApp must listen for events to manage the game flow:
+    *   **`GameCreated` Event:** After a user creates a game, your dApp needs to listen for the `GameCreated` event to retrieve the `gameId`. This ID is essential for the second player to join.
+    *   **Game State:** To show users a list of open games, your dApp will need to build and maintain its own state. You can do this by listening to contract events from its deployment block onwards. A `GameCreated` event indicates a new open game, and a subsequent `GameSolved` (or similar) event would indicate the game is finished.
+
+3.  **Decrypting Game Results:** The game result is stored as an encrypted `euint8`. Your dApp will need to call the `encryptedResult(gameId)` view function and then use the `fhevm.publicDecryptEuint` method to decrypt the value on the client side, as shown in the usage examples.
+
+4.  **User Experience (UX) for Sharing Games:** Since the `gameId` is the key to joining a game, your dApp should provide a simple way for the host player to share the game with a friend, for example, by generating a shareable link like `https://your-dapp.com/play?gameId=123`.
+
+## Usage examples
+
+Here are some examples of how to interact with the `FHERPS` smart contract using TypeScript and `ethers.js`.
+
+### 1. Deploying the Contract
+
+First, you need to get the contract factory and deploy it.
+
+```typescript
+import { ethers } from "hardhat";
+import { FHERPS, FHERPS__factory } from "../types";
+
+async function deploy() {
+  const factory = (await ethers.getContractFactory("FHERPS")) as FHERPS__factory;
+  const fherpsContract = (await factory.deploy()) as FHERPS;
+  const fherpsContractAddress = await fherpsContract.getAddress();
+  console.log(`FHERPS contract deployed at: ${fherpsContractAddress}`);
+  return { fherpsContract, fherpsContractAddress };
+}
+```
+
+### 2. Creating a Game
+
+To create a game, a player (the "host") needs to encrypt their move and submit it to the `createGameAndSubmitMove` function.
+
+```typescript
+import { fhevm } from "hardhat";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+
+async function createGame(
+  fherpsContract: FHERPS,
+  fherpsContractAddress: string,
+  hostSigner: HardhatEthersSigner
+) {
+  const hostMove = 1; // 1: Rock, 2: Paper, 3: Scissors
+
+  // Encrypt the host's move
+  const encryptedMove = await fhevm
+    .createEncryptedInput(fherpsContractAddress, hostSigner.address)
+    .add8(hostMove)
+    .encrypt();
+
+  // Create the game and submit the move
+  const tx = await fherpsContract
+    .connect(hostSigner)
+    .createGameAndSubmitMove(encryptedMove.handles[0], encryptedMove.inputProof);
+  
+  // Wait for the transaction to be mined and get the receipt
+  const receipt = await tx.wait();
+
+  // Find the GameCreated event to get the gameId
+  let gameId;
+  if (receipt.logs) {
+      const event = fherpsContract.interface.parseLog(receipt.logs[0]);
+      if (event && event.name === "GameCreated") {
+        gameId = event.args.gameId;
+        console.log(`Game created with ID: ${gameId}`);
+      }
+  }
+  return gameId;
+}
+```
+
+### 3. Joining a Game
+
+Another player (the "guest") can join an existing game by providing the `gameId`. They also need to encrypt and submit their move.
+
+```typescript
+import { fhevm } from "hardhat";
+import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+
+async function joinGame(
+  fherpsContract: FHERPS,
+  fherpsContractAddress: string,
+  guestSigner: HardhatEthersSigner,
+  gameId: number
+) {
+  const guestMove = 2; // 1: Rock, 2: Paper, 3: Scissors
+
+  // Encrypt the guest's move
+  const encryptedGuestMove = await fhevm
+    .createEncryptedInput(fherpsContractAddress, guestSigner.address)
+    .add8(guestMove)
+    .encrypt();
+
+  // Join the game and submit the move
+  const tx = await fherpsContract
+    .connect(guestSigner)
+    .joinGameAndSubmitMove(gameId, encryptedGuestMove.handles[0], encryptedGuestMove.inputProof);
+  await tx.wait();
+  console.log(`Player ${guestSigner.address} joined game ${gameId}`);
+}
+```
+
+### 4. Checking the Game Result
+
+Once both players have submitted their moves, anyone can retrieve the encrypted result and decrypt it publicly.
+
+```typescript
+import { FhevmType, HardhatFhevmRuntimeEnvironment } from "@fhevm/hardhat-plugin";
+import * as hre from "hardhat";
+
+async function checkResult(fherpsContract: FHERPS, gameId: number) {
+  const fhevm: HardhatFhevmRuntimeEnvironment = hre.fhevm;
+
+  // Retrieve the encrypted result from the contract
+  const encryptedResult = await fherpsContract.encryptedResult(gameId);
+
+  // Decrypt the result
+  const result = await fhevm.publicDecryptEuint(
+      FhevmType.euint8,
+      encryptedResult
+  );
+
+  // 0: not solved, 1: host wins, 2: guest wins, 3: draw
+  console.log(`Game ${gameId} result: ${result}`);
+  return result;
+}
+```
+
 [![GitBook](https://img.shields.io/static/v1?message=Documented%20on%20GitBook&logo=gitbook&logoColor=ffffff&label=%20&labelColor=5c5c5c&color=3F89A1)](https://www.gitbook.com/preview?utm_source=gitbook_readme_badge&utm_medium=organic&utm_campaign=preview_documentation&utm_content=link)
