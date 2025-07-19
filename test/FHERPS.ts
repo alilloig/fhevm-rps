@@ -167,10 +167,7 @@ describe("FHERPS", function () {
     const encryptedResult = await fherpsContract.connect(signers.deployer).encryptedResult(0);
     await tx.wait();
     // Decrypt it
-    const result = await fhevm.publicDecryptEuint(
-        FhevmType.euint8,
-        encryptedResult
-    );
+    const result = await fhevm.publicDecryptEuint(FhevmType.euint8, encryptedResult);
     // Check that the result matches the expected outcome (guest wins)
     expect(result).to.eq(2);
   });

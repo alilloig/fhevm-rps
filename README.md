@@ -13,7 +13,9 @@ The following guidelines were followed when designing the smart contract:
    - 🧻 : 2
    - ✂️ : 3
 
-   It is the dApp developer's responsibility to ensure that the values passed to the smart contract are within this range. Instead of performing a validity check on the provided `euint8` (which would be expensive in terms of HCU), the smart contract will automatically adjust any value outside the range to match the expected values.
+   It is the dApp developer's responsibility to ensure that the values passed to the smart contract are within this
+   range. Instead of performing a validity check on the provided `euint8` (which would be expensive in terms of HCU),
+   the smart contract will automatically adjust any value outside the range to match the expected values.
 
 3. When the game is marked as solved, the game result can be decrypted by anyone on the client side. The game result is
    encoded as an `euint8` value following this format:
@@ -48,36 +50,44 @@ winning. To resolve the game, a boolean `AND` operation is performed on an `euin
 corresponding to its packed move set to 1. If the result of this operation is `0`, the host won; otherwise, the guest
 won the game.
 
-| Host Move | Guest Move | Packed Value (Binary) | Packed Value (Decimal) | Outcome    |
-|-----------|------------|-----------------------|------------------------|------------|
-| Rock (1)  | Rock (1)   | 0101                  | 5                      | Draw       |
-| Rock (1)  | Paper (2)  | 0110                  | 6                      | Guest Wins |
-| Rock (1)  | Scissors (3)| 0111                  | 7                      | Host Wins  |
-| Paper (2) | Rock (1)   | 1001                  | 9                      | Host Wins  |
-| Paper (2) | Paper (2)  | 1010                  | 10                     | Draw       |
-| Paper (2) | Scissors (3)| 1011                  | 11                     | Guest Wins |
-| Scissors (3)| Rock (1)   | 1101                  | 13                     | Guest Wins |
-| Scissors (3)| Paper (2)  | 1110                  | 14                     | Host Wins  |
-| Scissors (3)| Scissors (3)| 1111                  | 15                     | Draw       |
-
+| Host Move    | Guest Move   | Packed Value (Binary) | Packed Value (Decimal) | Outcome    |
+| ------------ | ------------ | --------------------- | ---------------------- | ---------- |
+| Rock (1)     | Rock (1)     | 0101                  | 5                      | Draw       |
+| Rock (1)     | Paper (2)    | 0110                  | 6                      | Guest Wins |
+| Rock (1)     | Scissors (3) | 0111                  | 7                      | Host Wins  |
+| Paper (2)    | Rock (1)     | 1001                  | 9                      | Host Wins  |
+| Paper (2)    | Paper (2)    | 1010                  | 10                     | Draw       |
+| Paper (2)    | Scissors (3) | 1011                  | 11                     | Guest Wins |
+| Scissors (3) | Rock (1)     | 1101                  | 13                     | Guest Wins |
+| Scissors (3) | Paper (2)    | 1110                  | 14                     | Host Wins  |
+| Scissors (3) | Scissors (3) | 1111                  | 15                     | Draw       |
 
 ## dApp Integration Guide
 
-Developers building decentralized applications (dApps) on top of the `FHERPS` smart contract should consider the following:
+Developers building decentralized applications (dApps) on top of the `FHERPS` smart contract should consider the
+following:
 
-> [!IMPORTANT]
-> **Input Validation is Crucial:** The smart contract intentionally skips move validation (checking if the input is 1, 2, or 3) to save on HCU costs. This means your dApp **must** validate user input *before* encrypting it and sending it to the contract. If an invalid value is submitted, the contract will not revert, but the game logic will produce an incorrect result.
+> [!IMPORTANT] > **Input Validation is Crucial:** The smart contract intentionally skips move validation (checking if
+> the input is 1, 2, or 3) to save on HCU costs. This means your dApp **must** validate user input _before_ encrypting
+> it and sending it to the contract. If an invalid value is submitted, the contract will not revert, but the game logic
+> will produce an incorrect result.
 
-> [!TIP]
-> **Asynchronous Game Flow and Event Handling:** The contract's functions do not return values like the `gameId`. Your dApp must listen for events to manage the game flow:
-> *   **`GameCreated` Event:** After a user creates a game, your dApp needs to listen for the `GameCreated` event to retrieve the `gameId`. This ID is essential for the second player to join.
-> *   **Game State:** To show users a list of open games, your dApp will need to build and maintain its own state. You can do this by listening to contract events from its deployment block onwards. A `GameCreated` event indicates a new open game, and a subsequent `GameSolved` (or similar) event would indicate the game is finished.
+> [!TIP] > **Asynchronous Game Flow and Event Handling:** The contract's functions do not return values like the
+> `gameId`. Your dApp must listen for events to manage the game flow:
+>
+> - **`GameCreated` Event:** After a user creates a game, your dApp needs to listen for the `GameCreated` event to
+>   retrieve the `gameId`. This ID is essential for the second player to join.
+> - **Game State:** To show users a list of open games, your dApp will need to build and maintain its own state. You can
+>   do this by listening to contract events from its deployment block onwards. A `GameCreated` event indicates a new
+>   open game, and a subsequent `GameSolved` event would indicate the game is finished.
 
-> [!NOTE]
-> **Decrypting Game Results:** The game result is stored as an encrypted `euint8`. Your dApp will need to call the `encryptedResult(gameId)` view function and then use the `fhevm.publicDecryptEuint` method to decrypt the value on the client side, as shown in the usage examples.
+> [!NOTE] > **Decrypting Game Results:** The game result is stored as an encrypted `euint8`. Your dApp will need to call
+> the `encryptedResult(gameId)` view function and then use the `fhevm.publicDecryptEuint` method to decrypt the value on
+> the client side, as shown in the usage examples.
 
-> [!TIP]
-> **User Experience (UX) for Sharing Games:** Since the `gameId` is the key to joining a game, your dApp should provide a simple way for the host player to share the game with a friend, for example, by generating a shareable link like `https://your-dapp.com/play?gameId=123`.
+> [!TIP] > **User Experience (UX) for Sharing Games:** Since the `gameId` is the key to joining a game, your dApp should
+> provide a simple way for the host player to share the game with a friend, for example, by generating a shareable link
+> like `https://your-dapp.com/play?gameId=123`.
 
 ## Usage examples
 
@@ -102,17 +112,14 @@ async function deploy() {
 
 ### 2. Creating a Game
 
-To create a game, a player (the "host") needs to encrypt their move and submit it to the `createGameAndSubmitMove` function.
+To create a game, a player (the "host") needs to encrypt their move and submit it to the `createGameAndSubmitMove`
+function.
 
 ```typescript
 import { fhevm } from "hardhat";
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
 
-async function createGame(
-  fherpsContract: FHERPS,
-  fherpsContractAddress: string,
-  hostSigner: HardhatEthersSigner
-) {
+async function createGame(fherpsContract: FHERPS, fherpsContractAddress: string, hostSigner: HardhatEthersSigner) {
   const hostMove = 1; // 1: Rock, 2: Paper, 3: Scissors
 
   // Encrypt the host's move
@@ -125,18 +132,18 @@ async function createGame(
   const tx = await fherpsContract
     .connect(hostSigner)
     .createGameAndSubmitMove(encryptedMove.handles[0], encryptedMove.inputProof);
-  
+
   // Wait for the transaction to be mined and get the receipt
   const receipt = await tx.wait();
 
   // Find the GameCreated event to get the gameId
   let gameId;
   if (receipt.logs) {
-      const event = fherpsContract.interface.parseLog(receipt.logs[0]);
-      if (event && event.name === "GameCreated") {
-        gameId = event.args.gameId;
-        console.log(`Game created with ID: ${gameId}`);
-      }
+    const event = fherpsContract.interface.parseLog(receipt.logs[0]);
+    if (event && event.name === "GameCreated") {
+      gameId = event.args.gameId;
+      console.log(`Game created with ID: ${gameId}`);
+    }
   }
   return gameId;
 }
@@ -144,7 +151,8 @@ async function createGame(
 
 ### 3. Joining a Game
 
-Another player (the "guest") can join an existing game by providing the `gameId`. They also need to encrypt and submit their move.
+Another player (the "guest") can join an existing game by providing the `gameId`. They also need to encrypt and submit
+their move.
 
 ```typescript
 import { fhevm } from "hardhat";
@@ -154,7 +162,7 @@ async function joinGame(
   fherpsContract: FHERPS,
   fherpsContractAddress: string,
   guestSigner: HardhatEthersSigner,
-  gameId: number
+  gameId: number,
 ) {
   const guestMove = 2; // 1: Rock, 2: Paper, 3: Scissors
 
@@ -188,10 +196,7 @@ async function checkResult(fherpsContract: FHERPS, gameId: number) {
   const encryptedResult = await fherpsContract.encryptedResult(gameId);
 
   // Decrypt the result
-  const result = await fhevm.publicDecryptEuint(
-      FhevmType.euint8,
-      encryptedResult
-  );
+  const result = await fhevm.publicDecryptEuint(FhevmType.euint8, encryptedResult);
 
   // 0: not solved, 1: host wins, 2: guest wins, 3: draw
   console.log(`Game ${gameId} result: ${result}`);
