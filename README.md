@@ -48,19 +48,36 @@ winning. To resolve the game, a boolean `AND` operation is performed on an `euin
 corresponding to its packed move set to 1. If the result of this operation is `0`, the host won; otherwise, the guest
 won the game.
 
+| Host Move | Guest Move | Packed Value (Binary) | Packed Value (Decimal) | Outcome    |
+|-----------|------------|-----------------------|------------------------|------------|
+| Rock (1)  | Rock (1)   | 0101                  | 5                      | Draw       |
+| Rock (1)  | Paper (2)  | 0110                  | 6                      | Guest Wins |
+| Rock (1)  | Scissors (3)| 0111                  | 7                      | Host Wins  |
+| Paper (2) | Rock (1)   | 1001                  | 9                      | Host Wins  |
+| Paper (2) | Paper (2)  | 1010                  | 10                     | Draw       |
+| Paper (2) | Scissors (3)| 1011                  | 11                     | Guest Wins |
+| Scissors (3)| Rock (1)   | 1101                  | 13                     | Guest Wins |
+| Scissors (3)| Paper (2)  | 1110                  | 14                     | Host Wins  |
+| Scissors (3)| Scissors (3)| 1111                  | 15                     | Draw       |
+
+
 ## dApp Integration Guide
 
 Developers building decentralized applications (dApps) on top of the `FHERPS` smart contract should consider the following:
 
-1.  **Input Validation is Crucial:** The smart contract intentionally skips move validation (checking if the input is 1, 2, or 3) to save on HCU costs. This means your dApp **must** validate user input *before* encrypting it and sending it to the contract. If an invalid value is submitted, the contract will not revert, but the game logic will produce an incorrect result.
+> [!IMPORTANT]
+> **Input Validation is Crucial:** The smart contract intentionally skips move validation (checking if the input is 1, 2, or 3) to save on HCU costs. This means your dApp **must** validate user input *before* encrypting it and sending it to the contract. If an invalid value is submitted, the contract will not revert, but the game logic will produce an incorrect result.
 
-2.  **Asynchronous Game Flow and Event Handling:** The contract's functions do not return values like the `gameId`. Your dApp must listen for events to manage the game flow:
-    *   **`GameCreated` Event:** After a user creates a game, your dApp needs to listen for the `GameCreated` event to retrieve the `gameId`. This ID is essential for the second player to join.
-    *   **Game State:** To show users a list of open games, your dApp will need to build and maintain its own state. You can do this by listening to contract events from its deployment block onwards. A `GameCreated` event indicates a new open game, and a subsequent `GameSolved` (or similar) event would indicate the game is finished.
+> [!TIP]
+> **Asynchronous Game Flow and Event Handling:** The contract's functions do not return values like the `gameId`. Your dApp must listen for events to manage the game flow:
+> *   **`GameCreated` Event:** After a user creates a game, your dApp needs to listen for the `GameCreated` event to retrieve the `gameId`. This ID is essential for the second player to join.
+> *   **Game State:** To show users a list of open games, your dApp will need to build and maintain its own state. You can do this by listening to contract events from its deployment block onwards. A `GameCreated` event indicates a new open game, and a subsequent `GameSolved` (or similar) event would indicate the game is finished.
 
-3.  **Decrypting Game Results:** The game result is stored as an encrypted `euint8`. Your dApp will need to call the `encryptedResult(gameId)` view function and then use the `fhevm.publicDecryptEuint` method to decrypt the value on the client side, as shown in the usage examples.
+> [!NOTE]
+> **Decrypting Game Results:** The game result is stored as an encrypted `euint8`. Your dApp will need to call the `encryptedResult(gameId)` view function and then use the `fhevm.publicDecryptEuint` method to decrypt the value on the client side, as shown in the usage examples.
 
-4.  **User Experience (UX) for Sharing Games:** Since the `gameId` is the key to joining a game, your dApp should provide a simple way for the host player to share the game with a friend, for example, by generating a shareable link like `https://your-dapp.com/play?gameId=123`.
+> [!TIP]
+> **User Experience (UX) for Sharing Games:** Since the `gameId` is the key to joining a game, your dApp should provide a simple way for the host player to share the game with a friend, for example, by generating a shareable link like `https://your-dapp.com/play?gameId=123`.
 
 ## Usage examples
 
@@ -181,5 +198,3 @@ async function checkResult(fherpsContract: FHERPS, gameId: number) {
   return result;
 }
 ```
-
-[![GitBook](https://img.shields.io/static/v1?message=Documented%20on%20GitBook&logo=gitbook&logoColor=ffffff&label=%20&labelColor=5c5c5c&color=3F89A1)](https://www.gitbook.com/preview?utm_source=gitbook_readme_badge&utm_medium=organic&utm_campaign=preview_documentation&utm_content=link)
