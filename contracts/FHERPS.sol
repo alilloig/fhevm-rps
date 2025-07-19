@@ -40,7 +40,9 @@ contract FHERPS is SepoliaConfig {
     // Constructor to initialize the gameIdCounter and HOST_WINNING_MASK
     constructor() {
         gameIdCounter = 0;
-        HOST_WINNING_MASK = FHE.asEuint16(17024); // Mask with winning plays (7: RockScissors, 9: PaperRock, 14: ScissorsPaper) bit positions set at 1 (0100001010000000)
+        // Mask with winning plays (7: RockScissors, 9: PaperRock, 14: ScissorsPaper)
+        // bit positions set at 1 (0100001010000000)
+        HOST_WINNING_MASK = FHE.asEuint16(17024);
         FHE.allowThis(HOST_WINNING_MASK); // Allow the contract to operate on the HOST_WINNING_MASK
     }
 
@@ -90,8 +92,10 @@ contract FHERPS is SepoliaConfig {
 
     /// @notice Get the encrypted result of the game
     /// @param gameId The ID of the game to retrieve the result for
-    /// @dev The result is encrypted and can be decrypted by anyone who once the guest has submitted their move.
-    ///      The result is 0 if the game is not played yet, 1 if the host wins, 2 if the guest wins, and 3 if it's a draw.
+    /// @dev The result is encrypted and can be decrypted by anyone who once the guest
+    /// has submitted their move.
+    /// The result is 0 if the game is not played yet, 1 if the host wins, 2 if the
+    /// guest wins, and 3 if it's a draw.
     function encryptedResult(uint256 gameId) external view returns (euint8) {
         require(games[gameId].gameId == gameId, "Game does not exist");
         require(games[gameId].solved, "Game has not been solved yet");
@@ -110,8 +114,10 @@ contract FHERPS is SepoliaConfig {
     /// @notice Create a new game and submit the host's move
     /// @param encryptedMove The encrypted move of the host player
     /// @param inputProof The proof of the encrypted move
-    /// @dev The host's move is validated by the client, ensuring it is a valid move (0, 1, or 2) by doing a bitwise AND with 0b11
-    /// @dev The game is created with the host's address and move, and the guest's address and move are initially empty
+    /// @dev The host's move is validated by the client, ensuring it is a valid move
+    /// (0, 1, or 2) by doing a bitwise AND with 0b11
+    /// @dev The game is created with the host's address and move, and the guest's
+    /// address and move are initially empty
     /// @dev The game result is initially set to 0 (not played yet)
     /// @dev The contract allows itself to operate on the Game's encrypted fields
     /// @dev The gameIdCounter is incremented after creating the game
@@ -152,7 +158,8 @@ contract FHERPS is SepoliaConfig {
     /// @param gameId The ID of the game to join
     /// @param encryptedMove The encrypted move of the guest player
     /// @param inputProof The proof of the encrypted move
-    /// @dev The guest's move is validated by the client, ensuring it is a valid move (0, 1, or 2) by doing a bitwise AND with 0b11
+    /// @dev The guest's move is validated by the client, ensuring it is a valid move
+    /// (0, 1, or 2) by doing a bitwise AND with 0b11
     /// @dev The game is updated with the guest's address and move
     /// @dev The game result is calculated based on both moves, and the encrypted result is stored
     /// @dev The contract allows itself to operate on the Game's encrypted fields
