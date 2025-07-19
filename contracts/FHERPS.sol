@@ -1,16 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {
-    FHE,
-    eaddress,
-    ebool,
-    euint8,
-    euint16,
-    externalEaddress,
-    externalEbool,
-    externalEuint8
-} from "@fhevm/solidity/lib/FHE.sol";
+import {FHE, eaddress, ebool, euint8, euint16, externalEuint8} from "@fhevm/solidity/lib/FHE.sol";
 import {SepoliaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /// @title RPS game on FHEVM
@@ -41,18 +32,18 @@ contract FHERPS is SepoliaConfig {
 
     // State variables
     uint256 public gameIdCounter;
-    mapping(uint256 => Game) public games;
+    mapping(uint256 gameId => Game) public games;
 
     // Bitwise mask constant for host winning plays
-    euint16 internal HOST_WINNING_MASK;
+    euint16 internal hostWinningMask;
 
-    // Constructor to initialize the gameIdCounter and HOST_WINNING_MASK
+    // Constructor to initialize the gameIdCounter and hostWinningMask
     constructor() {
         gameIdCounter = 0;
         // Mask with winning plays (7: RockScissors, 9: PaperRock, 14: ScissorsPaper)
         // bit positions set at 1 (0100001010000000)
-        HOST_WINNING_MASK = FHE.asEuint16(17024);
-        FHE.allowThis(HOST_WINNING_MASK); // Allow the contract to operate on the HOST_WINNING_MASK
+        hostWinningMask = FHE.asEuint16(17024);
+        FHE.allowThis(hostWinningMask); // Allow the contract to operate on the hostWinningMask
     }
 
     /// @notice Get the address of the game host
@@ -197,8 +188,8 @@ contract FHERPS is SepoliaConfig {
         // The first 2 bits are the host initial move, the last 2 bits are the guest freshly submitted move
         euint8 packedMoves = FHE.shl(games[gameId].hostMove, FHE.asEuint8(2));
         packedMoves = FHE.or(packedMoves, move);
-        // Get the game result by applying the GUEST_WINNING_MASK to 1 shifted packed moves times left
-        euint16 gameResult = FHE.and(HOST_WINNING_MASK, FHE.asEuint16(FHE.shl(FHE.asEuint8(1), packedMoves)));
+        // Get the game result by applying the hostWinningMask to 1 shifted packed moves times left
+        euint16 gameResult = FHE.and(hostWinningMask, FHE.asEuint16(FHE.shl(FHE.asEuint8(1), packedMoves)));
         // If the result is different than 0, the host wins
         ebool hostWins = FHE.ne(gameResult, FHE.asEuint16(0));
         // Set the game result
