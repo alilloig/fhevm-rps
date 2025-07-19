@@ -19,6 +19,15 @@ contract FHERPS is SepoliaConfig {
     event GameCreated(uint256 gameId);
     event GameSolved(uint256 gameId);
 
+    // Custom errors
+    error GameNotFound(uint256 gameId);
+    error UnauthorizedHostAddress(uint256 gameId);
+    error UnauthorizedHostMove(uint256 gameId);
+    error UnauthorizedGuestAddress(uint256 gameId);
+    error UnauthorizedGuestMove(uint256 gameId);
+    error GameNotSolved(uint256 gameId);
+    error GameAlreadySolved(uint256 gameId);
+
     // Game struct
     struct Game {
         uint256 gameId;
@@ -52,8 +61,8 @@ contract FHERPS is SepoliaConfig {
     ///      Hosts can use this function to verify game integrity.
     /// @return The encrypted address of the host player
     function host(uint256 gameId) external view returns (eaddress) {
-        require(games[gameId].gameId == gameId, "Game does not exist");
-        require(FHE.isSenderAllowed(games[gameId].host), "Only host can retrieve its address");
+        if (games[gameId].gameId != gameId) revert GameNotFound(gameId);
+        if (!FHE.isSenderAllowed(games[gameId].host)) revert UnauthorizedHostAddress(gameId);
         return games[gameId].host;
     }
 
@@ -63,8 +72,8 @@ contract FHERPS is SepoliaConfig {
     ///      Hosts can use this function to verify their own move was submitted right.
     /// @return The encrypted move of the host player
     function hostMove(uint256 gameId) external view returns (euint8) {
-        require(games[gameId].gameId == gameId, "Game does not exist");
-        require(FHE.isSenderAllowed(games[gameId].hostMove), "Only host can retrieve its move");
+        if (!(games[gameId].gameId == gameId)) revert GameNotFound(gameId);
+        if (!FHE.isSenderAllowed(games[gameId].hostMove)) revert UnauthorizedHostMove(gameId);
         return games[gameId].hostMove;
     }
 
@@ -74,8 +83,8 @@ contract FHERPS is SepoliaConfig {
     ///      Guests can use this function to verify game integrity.
     /// @return The encrypted address of the guest player
     function guest(uint256 gameId) external view returns (eaddress) {
-        require(games[gameId].gameId == gameId, "Game does not exist");
-        require(FHE.isSenderAllowed(games[gameId].guest), "Only guest can retrieve its address");
+        if (games[gameId].gameId != gameId) revert GameNotFound(gameId);
+        if (!FHE.isSenderAllowed(games[gameId].guest)) revert UnauthorizedGuestAddress(gameId);
         return games[gameId].guest;
     }
 
@@ -85,8 +94,8 @@ contract FHERPS is SepoliaConfig {
     ///      Guests can use this function to verify their own move was submitted right.
     /// @return The encrypted move of the guest player
     function guestMove(uint256 gameId) external view returns (euint8) {
-        require(games[gameId].gameId == gameId, "Game does not exist");
-        require(FHE.isSenderAllowed(games[gameId].guestMove), "Only guest can retrieve its move");
+        if (games[gameId].gameId != gameId) revert GameNotFound(gameId);
+        if (!FHE.isSenderAllowed(games[gameId].guestMove)) revert UnauthorizedGuestMove(gameId);
         return games[gameId].guestMove;
     }
 
@@ -97,8 +106,8 @@ contract FHERPS is SepoliaConfig {
     /// The result is 0 if the game is not played yet, 1 if the host wins, 2 if the
     /// guest wins, and 3 if it's a draw.
     function encryptedResult(uint256 gameId) external view returns (euint8) {
-        require(games[gameId].gameId == gameId, "Game does not exist");
-        require(games[gameId].solved, "Game has not been solved yet");
+        if (games[gameId].gameId != gameId) revert GameNotFound(gameId);
+        if (!games[gameId].solved) revert GameNotSolved(gameId);
         return games[gameId].encryptedResult;
     }
 
@@ -107,7 +116,7 @@ contract FHERPS is SepoliaConfig {
     /// @dev This function allows anyone to check if a game has been solved.
     /// @return true if the game has been solved, false otherwise
     function solved(uint256 gameId) external view returns (bool) {
-        require(games[gameId].gameId == gameId, "Game does not exist");
+        if (games[gameId].gameId != gameId) revert GameNotFound(gameId);
         return games[gameId].solved;
     }
 
@@ -168,9 +177,9 @@ contract FHERPS is SepoliaConfig {
     /// @dev Emits a GameSolved event with the gameId
     function joinGameAndSubmitMove(uint256 gameId, externalEuint8 encryptedMove, bytes calldata inputProof) external {
         // Check if game exists
-        require(games[gameId].gameId == gameId, "Game does not exist");
+        if (games[gameId].gameId != gameId) revert GameNotFound(gameId);
         // Check if the game has been already solved
-        require(games[gameId].solved == false, "Game already solved");
+        if (games[gameId].solved) revert GameAlreadySolved(gameId);
         // Mark the game as solved
         games[gameId].solved = true;
         // Set the guest player to the sender's address
