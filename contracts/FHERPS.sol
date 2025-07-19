@@ -10,7 +10,6 @@ contract FHERPS is SepoliaConfig {
     // Events
     event GameCreated(uint256 gameId);
     event GameSolved(uint256 gameId);
-    event GamePublicResult(uint256 gameId, bool hostWon);
 
     // Game struct
     struct Game {
@@ -36,6 +35,7 @@ contract FHERPS is SepoliaConfig {
     constructor() {
         gameIdCounter = 0;
         HOST_WINNING_MASK = FHE.asEuint16(17024); // Mask with winning plays (7: RockScissors, 9: PaperRock, 14: ScissorsPaper) bit positions set at 1 (0100001010000000)
+        FHE.allowThis(HOST_WINNING_MASK); // Allow the contract to operate on the HOST_WINNING_MASK
     }
    
     /// @notice Create a new game and submit the host's move
@@ -125,7 +125,10 @@ contract FHERPS is SepoliaConfig {
         FHE.allow(games[gameId].guest, msg.sender);
         FHE.allow(games[gameId].guestMove, msg.sender);
         // Allow anyone to decrypt the game result
+        FHE.allowThis(games[gameId].encryptedResult);
         FHE.makePubliclyDecryptable(games[gameId].encryptedResult);
+        // Since the public permissions seem to be bugged, we give the host permission to decrypt the result as well
+        //FHE.allow(games[gameId].encryptedResult, msg.sender); 
         // Mark the game as solved
         games[gameId].gameSolved = true;
         // Emit event with gameId
