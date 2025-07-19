@@ -1,12 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {FHE, eaddress, ebool, euint8, euint16, externalEaddress, externalEbool, externalEuint8} from "@fhevm/solidity/lib/FHE.sol";
+import {
+    FHE,
+    eaddress,
+    ebool,
+    euint8,
+    euint16,
+    externalEaddress,
+    externalEbool,
+    externalEuint8
+} from "@fhevm/solidity/lib/FHE.sol";
 import {SepoliaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /// @title RPS game on FHEVM
 contract FHERPS is SepoliaConfig {
-    
     // Events
     event GameCreated(uint256 gameId);
     event GameSolved(uint256 gameId);
@@ -37,7 +45,7 @@ contract FHERPS is SepoliaConfig {
         HOST_WINNING_MASK = FHE.asEuint16(17024); // Mask with winning plays (7: RockScissors, 9: PaperRock, 14: ScissorsPaper) bit positions set at 1 (0100001010000000)
         FHE.allowThis(HOST_WINNING_MASK); // Allow the contract to operate on the HOST_WINNING_MASK
     }
-   
+
     /// @notice Create a new game and submit the host's move
     /// @param encryptedMove The encrypted move of the host player
     /// @param inputProof The proof of the encrypted move
@@ -52,7 +60,7 @@ contract FHERPS is SepoliaConfig {
         uint256 gameId = gameIdCounter;
         // Get the encrypted move from the external input
         euint8 move = FHE.fromExternal(encryptedMove, inputProof);
-        // To avoid unnecessary HCU calls, we delegate the move validation to clients, 
+        // To avoid unnecessary HCU calls, we delegate the move validation to clients,
         // doing a bitwise AND 0x00000011 to the move to enforce that it is a valid move value
         move = FHE.and(move, FHE.asEuint8(3));
         // Create the game instance
@@ -99,7 +107,7 @@ contract FHERPS is SepoliaConfig {
         games[gameId].guest = FHE.asEaddress(msg.sender);
         // Get the encrypted move from the external input
         euint8 move = FHE.fromExternal(encryptedMove, inputProof);
-        // To avoid unnecessary HCU calls, we delegate the move validation to clients, 
+        // To avoid unnecessary HCU calls, we delegate the move validation to clients,
         // doing a bitwise AND 0b11 to the move to enforce it is a valid move value
         move = FHE.and(move, FHE.asEuint8(3));
         // Store the guest move in the game
@@ -121,14 +129,14 @@ contract FHERPS is SepoliaConfig {
         // Allow the contract to operate on the updated fields
         FHE.allowThis(games[gameId].guest);
         FHE.allowThis(games[gameId].guestMove);
-        // Allow the guest player to check on their own address and move 
+        // Allow the guest player to check on their own address and move
         FHE.allow(games[gameId].guest, msg.sender);
         FHE.allow(games[gameId].guestMove, msg.sender);
         // Allow anyone to decrypt the game result
         FHE.allowThis(games[gameId].encryptedResult);
         FHE.makePubliclyDecryptable(games[gameId].encryptedResult);
         // Since the public permissions seem to be bugged, we give the host permission to decrypt the result as well
-        //FHE.allow(games[gameId].encryptedResult, msg.sender); 
+        //FHE.allow(games[gameId].encryptedResult, msg.sender);
         // Mark the game as solved
         games[gameId].gameSolved = true;
         // Emit event with gameId
@@ -137,7 +145,7 @@ contract FHERPS is SepoliaConfig {
 
     /// @notice Get the address of the game host
     /// @param gameId The ID of the game to retrieve the host address for
-    /// @dev Only the host can access its address. 
+    /// @dev Only the host can access its address.
     ///      Hosts can use this function to verify game integrity.
     /// @return The encrypted address of the host player
     function host(uint256 gameId) external view returns (eaddress) {
@@ -148,7 +156,7 @@ contract FHERPS is SepoliaConfig {
 
     /// @notice Get the host's move in the game
     /// @param gameId The ID of the game to retrieve the host's move for
-    /// @dev Only the host can access its move. 
+    /// @dev Only the host can access its move.
     ///      Hosts can use this function to verify their own move was submitted right.
     /// @return The encrypted move of the host player
     function hostMove(uint256 gameId) external view returns (euint8) {
@@ -159,7 +167,7 @@ contract FHERPS is SepoliaConfig {
 
     /// @notice Get the address of the game guest
     /// @param gameId The ID of the game to retrieve the guest address for
-    /// @dev Only the guest can access its address. 
+    /// @dev Only the guest can access its address.
     ///      Guests can use this function to verify game integrity.
     /// @return The encrypted address of the guest player
     function guest(uint256 gameId) external view returns (eaddress) {
@@ -170,7 +178,7 @@ contract FHERPS is SepoliaConfig {
 
     /// @notice Get the guest's move in the game
     /// @param gameId The ID of the game to retrieve the guest's move for
-    /// @dev Only the guest can access its move. 
+    /// @dev Only the guest can access its move.
     ///      Guests can use this function to verify their own move was submitted right.
     /// @return The encrypted move of the guest player
     function guestMove(uint256 gameId) external view returns (euint8) {
@@ -188,7 +196,6 @@ contract FHERPS is SepoliaConfig {
         require(games[gameId].gameSolved, "Game has not been solved yet");
         return games[gameId].encryptedResult;
     }
-
 
     /*function playSinglePlayerGame(externalEuint8 encryptedMove, bytes calldata inputProof) external {
         uint256 gameId = gameIdCounter;
