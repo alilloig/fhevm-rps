@@ -1,21 +1,19 @@
 # FHEVM Rock Paper Scissors
 
-An FHEVM RPS Solidity implementation allowing players to play Rock-Paper-Scissors games privately.
+An FHEVM RPS Solidity implementation that allows players to play Rock-Paper-Scissors games privately.
 
 ## Considerations
 
-The following guidelines have been followed when designing the smart contract:
+The following guidelines were followed when designing the smart contract:
 
-1. Players' addresses and moves will be kept encrypted for everyone except themselves.
-2. For HCU optimization reasons, plays will be encoded as an `euint8` as follows:
+1. Players' addresses and moves are kept encrypted and are only accessible to themselves.
+2. For HCU optimization, plays are encoded as an `euint8` as follows:
 
    - 🪨 : 1
    - 🧻 : 2
    - ✂️ : 3
 
-   It is the dApp developer's responsibility to ensure that the values passed to the smart contract are within this
-   range. Instead of performing a sanity check on the passed `euint8`, which would be expensive HCU-wise, the smart
-   contract will adjust any value outside the range to match the expected values.
+   It is the dApp developer's responsibility to ensure that the values passed to the smart contract are within this range. Instead of performing a validity check on the provided `euint8` (which would be expensive in terms of HCU), the smart contract will automatically adjust any value outside the range to match the expected values.
 
 3. When the game is marked as solved, the game result can be decrypted by anyone on the client side. The game result is
    encoded as an `euint8` value following this format:
