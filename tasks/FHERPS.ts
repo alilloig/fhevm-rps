@@ -1,4 +1,4 @@
-import { FhevmType } from "@fhevm/hardhat-plugin";
+// import { FhevmType } from "@fhevm/hardhat-plugin";
 import { task } from "hardhat/config";
 import type { TaskArguments } from "hardhat/types";
 
