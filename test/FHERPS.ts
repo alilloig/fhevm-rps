@@ -100,7 +100,9 @@ describe("FHERPS", function () {
       fherpsContract
         .connect(signers.bob)
         .joinGameAndSubmitMove(999, encryptedGuestMove.handles[0], encryptedGuestMove.inputProof),
-    ).to.be.revertedWithCustomError(fherpsContract, "GameNotFound").withArgs(999);
+    )
+      .to.be.revertedWithCustomError(fherpsContract, "GameNotFound")
+      .withArgs(999);
   });
 
   it("should not be able to join a resolved game", async function () {
@@ -134,7 +136,9 @@ describe("FHERPS", function () {
       fherpsContract
         .connect(signers.bob)
         .joinGameAndSubmitMove(0, encryptedGuestMove.handles[0], encryptedGuestMove.inputProof),
-    ).to.be.revertedWithCustomError(fherpsContract, "GameAlreadySolved").withArgs(0);
+    )
+      .to.be.revertedWithCustomError(fherpsContract, "GameAlreadySolved")
+      .withArgs(0);
   });
 
   it("should be able to check a resolved game result", async function () {
