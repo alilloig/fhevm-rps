@@ -32,7 +32,7 @@ contract FHERPS is SepoliaConfig {
 
     // State variables
     uint256 public gameIdCounter;
-    mapping(uint256 gameId => Game) public games;
+    mapping(uint256 gameId => Game game) public games;
 
     // Bitwise mask constant for host winning plays
     euint16 internal hostWinningMask;
