@@ -72,11 +72,11 @@ following:
 {% endhint %}
 
 {% hint style="info" %}
-**Asynchronous Game Flow and Event Handling:** The contract's functions do not return values like the `gameId`. Your dApp must listen for events to manage the game flow:
+**Asynchronous and Anonymous Game Flow:** The contract is designed for anonymous gameplay. A user can create a game without revealing their identity, and any other user can join an existing game. To manage this, your dApp should:
 
-*   **`GameCreated` Event:** Your dApp needs to listen for the `GameCreated` event to track new 
-   retrieve the `gameId`. This ID is essential for the second player to join.
-*   **Game State:** To show users a list of open games, your dApp will need to build and maintain its own state. You can   do this by listening to contract events from its deployment block onwards. A `GameCreated` event indicates a new   open game, and a subsequent `GameSolved` event would indicate the game is finished.
+*   **Track `GameCreated` Events:** Listen for `GameCreated` events to build a list of available games for users to join.
+*   **Track `GameSolved` Events:** Listen for `GameSolved` events to remove games from the available list.
+*   **Check Game Status:** Before a user attempts to join a game, use the `solved(gameId)` function to ensure it hasn't already been taken by another player.
 {% endhint %}
 
 {% hint style="info" %}
@@ -84,7 +84,7 @@ following:
 {% endhint %}
 
 {% hint style="success" %}
-**User Experience (UX) for Sharing Games:** Since the `gameId` is the key to joining a game, your dApp should provide a simple way for the host player to share the game with a friend, for example, by generating a shareable link like `https://your-dapp.com/play?gameId=123`.
+**User Experience for Anonymous Play:** Since the gameplay is anonymous, your dApp should focus on providing a seamless experience for discovering and joining open games. The core user interaction should be browsing a list of available games and joining one.
 {% endhint %}
 
 ## Usage examples
