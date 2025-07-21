@@ -26,6 +26,7 @@ contract FHERPS is SepoliaConfig {
         eaddress guest; // Guest player address
         euint8 hostMove;
         euint8 guestMove; // Guest move, initially empty
+        euint8 packedMoves; // Packed moves, initially empty
         euint8 encryptedResult; // 0: not played yet, 1: host wins, 2: guest wins, 3: draw
         bool solved; // Flag to indicate if the game has been solved
     }
@@ -41,7 +42,7 @@ contract FHERPS is SepoliaConfig {
     constructor() {
         gameIdCounter = 0;
         // Mask with winning plays (7: RockScissors, 9: PaperRock, 14: ScissorsPaper)
-        // bit positions set at 1 (0100001010000000)
+        // bit positions set at 1 (0100001010000000)17024
         hostWinningMask = FHE.asEuint16(17024);
         FHE.allowThis(hostWinningMask); // Allow the contract to operate on the hostWinningMask
     }
@@ -88,6 +89,12 @@ contract FHERPS is SepoliaConfig {
         if (games[gameId].gameId != gameId) revert GameNotFound(gameId);
         if (!FHE.isSenderAllowed(games[gameId].guestMove)) revert UnauthorizedGuestMove(gameId);
         return games[gameId].guestMove;
+    }
+
+    function packedMoves(uint256 gameId) external view returns (euint8) {
+        if (games[gameId].gameId != gameId) revert GameNotFound(gameId);
+        if (!games[gameId].solved) revert GameNotSolved(gameId);
+        return games[gameId].packedMoves;
     }
 
     /// @notice Get the encrypted result of the game
@@ -139,6 +146,7 @@ contract FHERPS is SepoliaConfig {
             guest: FHE.asEaddress(address(0)), // Guest is initially empty
             hostMove: move,
             guestMove: FHE.asEuint8(0), // Guest move is initially empty
+            packedMoves: FHE.asEuint8(0), // Packed moves, initially empty
             encryptedResult: FHE.asEuint8(0), // 0: not played yet, 1: host wins, 2: guest wins, 3: draw
             solved: false
         });
@@ -149,6 +157,7 @@ contract FHERPS is SepoliaConfig {
         FHE.allowThis(games[gameId].hostMove);
         FHE.allow(games[gameId].hostMove, msg.sender);
         FHE.allowThis(games[gameId].guestMove);
+        FHE.allowThis(games[gameId].packedMoves);
         FHE.allowThis(games[gameId].encryptedResult);
         // Emit event with gameId
         emit GameCreated(gameId);
@@ -188,6 +197,10 @@ contract FHERPS is SepoliaConfig {
         // The first 2 bits are the host initial move, the last 2 bits are the guest freshly submitted move
         euint8 packedMoves = FHE.shl(games[gameId].hostMove, FHE.asEuint8(2));
         packedMoves = FHE.or(packedMoves, move);
+        // Store the packed moves in the game
+        games[gameId].packedMoves = packedMoves;
+        // Allow anyone to check the packed moves for debugging purposes
+        FHE.makePubliclyDecryptable(games[gameId].packedMoves);
         // Get the game result by applying the hostWinningMask to 1 shifted packed moves times left
         euint16 gameResult = FHE.and(hostWinningMask, FHE.asEuint16(FHE.shl(FHE.asEuint8(1), packedMoves)));
         // If the result is different than 0, the host wins
@@ -240,6 +253,7 @@ contract FHERPS is SepoliaConfig {
             hostMove: move,
             guestMove: FHE.asEuint8(0), // Guest move is initially empty
             encryptedResult: FHE.asEuint8(0), // 0: not played yet, 1: host wins, 2: guest wins, 3: draw
+            packedMoves: FHE.asEuint8(0), // Packed moves, initially empty
             solved: true // Single player games are solved immediately
         });
         // Set the guest player to the sender's address
