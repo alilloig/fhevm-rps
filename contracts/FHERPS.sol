@@ -265,7 +265,8 @@ contract FHERPS is SepoliaConfig {
         euint8 packedMoves = FHE.shl(move, FHE.asEuint8(2));
         packedMoves = FHE.or(packedMoves, computerMove);
         // Get the game result by applying the hostWinningMask to 1 shifted packed moves times left
-        euint16 gameResult = FHE.and(hostWinningMask, FHE.asEuint16(FHE.shl(FHE.asEuint8(1), packedMoves)));
+        euint16 packedMovesMask = FHE.shl(FHE.asEuint16(1), packedMoves);
+        euint16 gameResult = FHE.and(hostWinningMask, packedMovesMask);
         // If the result is different than 0, the host wins, if its 0 either the guest wins or its was a draw
         ebool hostWins = FHE.ne(gameResult, FHE.asEuint16(0));
         // Set the game result

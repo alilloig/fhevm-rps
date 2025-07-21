@@ -328,7 +328,7 @@ describe("FHE Rock Paper Scissors Testing", function () {
     it("should create a single player game and it should be solved", async function () {
       const encryptedMove = await fhevm
         .createEncryptedInput(fherpsContractAddress, signers.alice.address)
-        .add8(ROCK)
+        .add8(SCISSORS)
         .encrypt();
 
       const tx = await fherpsContract
@@ -344,7 +344,7 @@ describe("FHE Rock Paper Scissors Testing", function () {
     it("should create a single player game and allow host to see their move", async function () {
       const encryptedMove = await fhevm
         .createEncryptedInput(fherpsContractAddress, signers.alice.address)
-        .add8(ROCK)
+        .add8(SCISSORS)
         .encrypt();
 
       const tx = await fherpsContract
@@ -361,7 +361,7 @@ describe("FHE Rock Paper Scissors Testing", function () {
     it("should create a single player game and allow host to see guest(computer) move", async function () {
       const encryptedMove = await fhevm
         .createEncryptedInput(fherpsContractAddress, signers.alice.address)
-        .add8(ROCK)
+        .add8(SCISSORS)
         .encrypt();
 
       const tx = await fherpsContract
@@ -378,7 +378,7 @@ describe("FHE Rock Paper Scissors Testing", function () {
     it("should create a single player game and allow host to see the result", async function () {
       const encryptedMove = await fhevm
         .createEncryptedInput(fherpsContractAddress, signers.alice.address)
-        .add8(ROCK)
+        .add8(SCISSORS)
         .encrypt();
 
       const tx = await fherpsContract
