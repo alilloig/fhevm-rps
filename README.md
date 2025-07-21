@@ -89,115 +89,137 @@ following:
 
 ## Usage examples
 
-Here are some examples of how to interact with the `FHERPS` smart contract using TypeScript and `ethers.js`.
+This section provides examples of how to interact with the `FHERPS` smart contract using the provided Hardhat tasks.
 
 ### 1. Deploying the Contract
 
-First, you need to get the contract factory and deploy it.
+First, you need to deploy the contract to your network of choice (e.g., `localhost` for local testing or `sepolia` for the testnet).
 
-```typescript
-import { ethers } from "hardhat";
-import { FHERPS, FHERPS__factory } from "../types";
+```bash
+npx hardhat deploy --network localhost
+```
 
-async function deploy() {
-  const factory = (await ethers.getContractFactory("FHERPS")) as FHERPS__factory;
-  const fherpsContract = (await factory.deploy()) as FHERPS;
-  const fherpsContractAddress = await fherpsContract.getAddress();
-  console.log(`FHERPS contract deployed at: ${fherpsContractAddress}`);
-  return { fherpsContract, fherpsContractAddress };
-}
+Once deployed, you can retrieve the contract address using the `task:address` task:
+
+```bash
+npx hardhat task:address --network localhost
+# Output: FHERPS address is 0x...
 ```
 
 ### 2. Creating a Game
 
-To create a game, a player (the "host") needs to encrypt their move and submit it to the `createGameAndSubmitMove`
-function.
+To create a new game, a user (the "host") must submit their move (1 for Rock, 2 for Paper, 3 for Scissors). The task `task:create-game` handles the encryption of the move and sends it to the contract.
+
+**Command:**
+
+```bash
+# Replace --move 1 with 2 (Paper) or 3 (Scissors) as desired.
+npx hardhat task:create-game --move 1 --network localhost
+```
+
+The task will output the `gameId` of the newly created game, which is needed for other players to join.
+
+**Code Snippet from `tasks/FHERPS.ts`:**
+
+This is how the move is encrypted and the `createGameAndSubmitMove` function is called.
 
 ```typescript
-import { fhevm } from "hardhat";
-import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { FhevmType } from "@fhevm/hardhat-plugin";
+import { ethers, deployments, fhevm } from "hardhat";
 
-async function createGame(fherpsContract: FHERPS, fherpsContractAddress: string, hostSigner: HardhatEthersSigner) {
-  const hostMove = 1; // 1: Rock, 2: Paper, 3: Scissors
+// Assume contract, signers, and move are already initialized
+const FHERPSDeployement = await deployments.get("FHERPS");
+const signers = await ethers.getSigners();
+const fheRpsContract = await ethers.getContractAt("FHERPS", FHERPSDeployement.address);
+const move = 1; // Example move: Rock
 
-  // Encrypt the host's move
-  const encryptedMove = await fhevm
-    .createEncryptedInput(fherpsContractAddress, hostSigner.address)
-    .add8(hostMove)
-    .encrypt();
+// Encrypt the move for the host (signer[0])
+const encryptedValue = await fhevm
+  .createEncryptedInput(FHERPSDeployement.address, signers[0].address)
+  .add8(move)
+  .encrypt();
 
-  // Create the game and submit the move
-  const tx = await fherpsContract
-    .connect(hostSigner)
-    .createGameAndSubmitMove(encryptedMove.handles[0], encryptedMove.inputProof);
+// Call the contract to create the game
+const tx = await fheRpsContract
+  .connect(signers[0])
+  .createGameAndSubmitMove(encryptedValue.handles[0], encryptedValue.inputProof);
 
-  // Wait for the transaction to be mined and get the receipt
-  const receipt = await tx.wait();
-
-  // Find the GameCreated event to get the gameId
-  let gameId;
-  if (receipt.logs) {
-    const event = fherpsContract.interface.parseLog(receipt.logs[0]);
-    if (event && event.name === "GameCreated") {
-      gameId = event.args.gameId;
-      console.log(`Game created with ID: ${gameId}`);
-    }
-  }
-  return gameId;
-}
+// The contract will emit a 'GameCreated' event with the gameId
 ```
 
 ### 3. Joining a Game
 
-Another player (the "guest") can join an existing game by providing the `gameId`. They also need to encrypt and submit
-their move.
+Another user (the "guest") can join an existing game using its `gameId`. They also submit their encrypted move.
+
+**Command:**
+
+```bash
+# Replace --gameid 0 with the actual gameId.
+# Replace --move 2 with the guest's move.
+npx hardhat task:join-game --gameid 0 --move 2 --network localhost
+```
+
+**Code Snippet from `tasks/FHERPS.ts`:**
+
+The guest's move is encrypted and sent to the `joinGameAndSubmitMove` function.
 
 ```typescript
-import { fhevm } from "hardhat";
-import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers";
+import { FhevmType } from "@fhevm/hardhat-plugin";
+import { ethers, deployments, fhevm } from "hardhat";
 
-async function joinGame(
-  fherpsContract: FHERPS,
-  fherpsContractAddress: string,
-  guestSigner: HardhatEthersSigner,
-  gameId: number,
-) {
-  const guestMove = 2; // 1: Rock, 2: Paper, 3: Scissors
+// Assume contract, signers, gameId, and move are initialized
+const FHERPSDeployement = await deployments.get("FHERPS");
+const signers = await ethers.getSigners();
+const guestSigner = signers[1]; // Assuming the guest is the second account
+const fheRpsContract = await ethers.getContractAt("FHERPS", FHERPSDeployement.address);
+const gameId = 0;
+const move = 2; // Example move: Paper
 
-  // Encrypt the guest's move
-  const encryptedGuestMove = await fhevm
-    .createEncryptedInput(fherpsContractAddress, guestSigner.address)
-    .add8(guestMove)
-    .encrypt();
+// Encrypt the move for the guest
+const encryptedValue = await fhevm
+  .createEncryptedInput(FHERPSDeployement.address, guestSigner.address)
+  .add8(move)
+  .encrypt();
 
-  // Join the game and submit the move
-  const tx = await fherpsContract
-    .connect(guestSigner)
-    .joinGameAndSubmitMove(gameId, encryptedGuestMove.handles[0], encryptedGuestMove.inputProof);
-  await tx.wait();
-  console.log(`Player ${guestSigner.address} joined game ${gameId}`);
-}
+// Call the contract to join the game
+const tx = await fheRpsContract
+  .connect(guestSigner)
+  .joinGameAndSubmitMove(gameId, encryptedValue.handles[0], encryptedValue.inputProof);
 ```
 
 ### 4. Checking the Game Result
 
-Once both players have submitted their moves, anyone can retrieve the encrypted result and decrypt it publicly.
+Once a guest joins a game, the result is calculated and stored encrypted in the contract. Anyone can query this encrypted result and decrypt it on the client-side.
+
+**Command:**
+
+```bash
+npx hardhat task:get-result-and-decrypt --gameid 0 --network localhost
+```
+
+The task will output the encrypted result and the decrypted "clear" result (1 for host wins, 2 for guest wins, 3 for a draw).
+
+**Code Snippet from `tasks/FHERPS.ts`:**
+
+This shows how to fetch the encrypted result and decrypt it.
 
 ```typescript
-import { FhevmType, HardhatFhevmRuntimeEnvironment } from "@fhevm/hardhat-plugin";
-import * as hre from "hardhat";
+import { FhevmType } from "@fhevm/hardhat-plugin";
+import { ethers, deployments, fhevm } from "hardhat";
 
-async function checkResult(fherpsContract: FHERPS, gameId: number) {
-  const fhevm: HardhatFhevmRuntimeEnvironment = hre.fhevm;
+// Assume contract, gameId are initialized
+const FHERPSDeployement = await deployments.get("FHERPS");
+const fheRpsContract = await ethers.getContractAt("FHERPS", FHERPSDeployement.address);
+const gameId = 0;
 
-  // Retrieve the encrypted result from the contract
-  const encryptedResult = await fherpsContract.encryptedResult(gameId);
+// Get the encrypted result from the contract
+const encryptedResult = await fheRpsContract.encryptedResult(gameId);
 
-  // Decrypt the result
-  const result = await fhevm.publicDecryptEuint(FhevmType.euint8, encryptedResult);
+// Decrypt the result publicly
+const clearResult = await fhevm.publicDecryptEuint(
+  FhevmType.euint8,
+  encryptedResult
+);
 
-  // 0: not solved, 1: host wins, 2: guest wins, 3: draw
-  console.log(`Game ${gameId} result: ${result}`);
-  return result;
-}
+console.log(`Game ${gameId} result: ${clearResult}`);
 ```
