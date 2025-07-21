@@ -48,7 +48,32 @@ async function playGameAndGetResult(
   // Retrieve and decrypt the result
   const encryptedResult = await fherpsContract.encryptedResult(gameId);
   const result = await fhevm.publicDecryptEuint(FhevmType.euint8, encryptedResult);
-  return result;
+  const encryptedHostMoveRead = await fherpsContract.connect(alice).hostMove(gameId);
+  const encryptedGuestMoveRead = await fherpsContract.connect(bob).guestMove(gameId);
+  // Decrypt the moves
+  const hostMoveDecrypted = await fhevm.userDecryptEuint(
+    FhevmType.euint8, 
+    encryptedHostMoveRead,
+    fherpsContract.getAddress(),
+    alice
+  );
+  const guestMoveDecrypted = await fhevm.userDecryptEuint(
+    FhevmType.euint8,
+    encryptedGuestMoveRead,
+    fherpsContract.getAddress(),
+    bob
+  );
+  const encryptedPackedMoves = await fherpsContract.packedMoves(gameId);
+  const packedMovesDecrypted = await fhevm.publicDecryptEuint(
+    FhevmType.euint8,
+    encryptedPackedMoves,
+  );
+  const encryptedPackedMovesMask = await fherpsContract.packedMovesMask(gameId);
+  const packedMovesMaskDecrypted = await fhevm.publicDecryptEuint(
+    FhevmType.euint16,
+    encryptedPackedMovesMask,
+  );
+  return [result, hostMoveDecrypted, guestMoveDecrypted, packedMovesDecrypted, packedMovesMaskDecrypted];
 }
 
 describe("FHE Rock Paper Scissors Testing", function () {
@@ -214,8 +239,11 @@ describe("FHE Rock Paper Scissors Testing", function () {
         signers.bob,
         fhevm,
       );
-      console.log("Game result RR:", resultRock);
-      expect(resultRock).to.eq(DRAW);
+      console.log("Game result RR:", resultRock[0]);
+      console.log("Host move:", resultRock[1]);
+      console.log("Guest move:", resultRock[2]);
+      console.log("Packed moves:", resultRock[3]);
+      expect(resultRock[0]).to.eq(DRAW);
     });
 
     it("should result in a draw when both players choose the same move (Paper vs Paper)", async function () {
@@ -228,8 +256,12 @@ describe("FHE Rock Paper Scissors Testing", function () {
         signers.bob,
         fhevm,
       );
-      console.log("Game result PP:", resultPaper);
-      expect(resultPaper).to.eq(DRAW);
+      console.log("Game result PP:", resultPaper[0]);
+      console.log("Host move:", resultPaper[1]);
+      console.log("Guest move:", resultPaper[2]);
+      console.log("Packed moves:", resultPaper[3]);
+      console.log("Packed moves mask:", resultPaper[4]);
+      expect(resultPaper[0]).to.eq(DRAW);
     });
 
     it("should result in a draw when both players choose the same move (Scissors vs Scissors)", async function () {
@@ -242,8 +274,12 @@ describe("FHE Rock Paper Scissors Testing", function () {
         signers.bob,
         fhevm,
       );
-      console.log("Game result SS:", resultScissors);
-      expect(resultScissors).to.eq(DRAW);
+      console.log("Game result SS:", resultScissors[0]);
+      console.log("Host move:", resultScissors[1]);
+      console.log("Guest move:", resultScissors[2]);
+      console.log("Packed moves:", resultScissors[3]);
+      console.log("Packed moves mask:", resultScissors[4]);
+      expect(resultScissors[0]).to.eq(DRAW);
     });
 
     it("should result in host winning (Rock vs Scissors)", async function () {
@@ -256,10 +292,15 @@ describe("FHE Rock Paper Scissors Testing", function () {
         signers.bob,
         fhevm,
       );
-      console.log("Game result RS:", result);
-      expect(result).to.eq(HOST_WINS);
+      console.log("Game result RS:", result[0]);
+      console.log("Host move:", result[1]);
+      console.log("Guest move:", result[2]);
+      console.log("Packed moves:", result[3]);
+      console.log("Packed moves mask:", result[4]);
+      expect(result[0]).to.eq(HOST_WINS);
     });
 
+    // failing
     it("should result in host winning (Paper vs Rock)", async function () {
       const result = await playGameAndGetResult(
         PAPER,
@@ -270,10 +311,15 @@ describe("FHE Rock Paper Scissors Testing", function () {
         signers.bob,
         fhevm,
       );
-      console.log("Game result PR:", result);
-      expect(result).to.eq(HOST_WINS);
+      console.log("Game result PR:", result[0]);
+      console.log("Host move:", result[1]);
+      console.log("Guest move:", result[2]);
+      console.log("Packed moves:", result[3]);
+      console.log("Packed moves mask:", result[4]);
+      expect(result[0]).to.eq(HOST_WINS);
     });
 
+    // failing
     it("should result in host winning (Scissors vs Paper)", async function () {
       const result = await playGameAndGetResult(
         SCISSORS,
@@ -284,8 +330,12 @@ describe("FHE Rock Paper Scissors Testing", function () {
         signers.bob,
         fhevm,
       );
-      console.log("Game result SP:", result);
-      expect(result).to.eq(HOST_WINS);
+      console.log("Game result SP:", result[0]);
+      console.log("Host move:", result[1]);
+      console.log("Guest move:", result[2]);
+      console.log("Packed moves:", result[3]);
+      console.log("Packed moves mask:", result[4]);
+      expect(result[0]).to.eq(HOST_WINS);
     });
 
     it("should result in guest winning (Scissors vs Rock)", async function () {
@@ -298,8 +348,12 @@ describe("FHE Rock Paper Scissors Testing", function () {
         signers.bob,
         fhevm,
       );
-      console.log("Game result SR:", result);
-      expect(result).to.eq(GUEST_WINS);
+      console.log("Game result SR:", result[0]);
+      console.log("Host move:", result[1]);
+      console.log("Guest move:", result[2]);
+      console.log("Packed moves:", result[3]);
+      console.log("Packed moves mask:", result[4]);
+      expect(result[0]).to.eq(GUEST_WINS);
     });
 
     it("should result in guest winning (Rock vs Paper)", async function () {
@@ -312,8 +366,12 @@ describe("FHE Rock Paper Scissors Testing", function () {
         signers.bob,
         fhevm,
       );
-      console.log("Game result RP:", result);
-      expect(result).to.eq(GUEST_WINS);
+      console.log("Game result RP:", result[0]);
+      console.log("Host move:", result[1]);
+      console.log("Guest move:", result[2]);
+      console.log("Packed moves:", result[3]);
+      console.log("Packed moves mask:", result[4]);
+      expect(result[0]).to.eq(GUEST_WINS);
     });
 
     it("should result in guest winning (Paper vs Scissors)", async function () {
@@ -326,8 +384,12 @@ describe("FHE Rock Paper Scissors Testing", function () {
         signers.bob,
         fhevm,
       );
-      console.log("Game result PS:", result);
-      expect(result).to.eq(GUEST_WINS);
+      console.log("Game result PS:", result[0]);
+      console.log("Host move:", result[1]);
+      console.log("Guest move:", result[2]);
+      console.log("Packed moves:", result[3]);
+      console.log("Packed moves mask:", result[4]);
+      expect(result[0]).to.eq(GUEST_WINS);
     });
   });
 
