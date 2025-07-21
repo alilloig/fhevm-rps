@@ -159,7 +159,7 @@ contract FHERPS is SepoliaConfig {
     /// @param encryptedMove The encrypted move of the guest player
     /// @param inputProof The proof of the encrypted move
     /// @dev The guest's move is validated by the client, ensuring it is a valid move
-    /// (0, 1, or 2) by doing a bitwise AND with 0b11
+    /// (1, 2, or 3) by doing a bitwise AND with 0b11
     /// @dev The game is updated with the guest's address and move
     /// @dev The game result is calculated based on both moves, and the encrypted result is stored
     /// @dev The contract allows itself to operate on the Game's encrypted fields
@@ -195,7 +195,7 @@ contract FHERPS is SepoliaConfig {
         // Set the game result
         games[gameId].encryptedResult = FHE.select(hostWins, FHE.asEuint8(1), FHE.asEuint8(2));
         // If the game was a draw, we overwrite the encryptedResult with 0, otherwise we keep the value
-        games[gameId].encryptedResult = FHE.select(draw, FHE.asEuint8(0), games[gameId].encryptedResult);
+        games[gameId].encryptedResult = FHE.select(draw, FHE.asEuint8(3), games[gameId].encryptedResult);
         // Allow the contract to operate on the updated fields
         FHE.allowThis(games[gameId].guest);
         FHE.allowThis(games[gameId].guestMove);
@@ -245,7 +245,16 @@ contract FHERPS is SepoliaConfig {
         // Set the guest player to the sender's address
         games[gameId].guest = FHE.asEaddress(msg.sender);
         // Get the encrypted move from the external input
-        euint8 computerMove = FHE.randEuint8(3);
+        euint8 computerMove = FHE.randEuint8(4);
+        // Now we have a random number between 0 and 3, which is not a valid move range
+        // We need to convert it to a valid move (1, 2 or 3).
+        // This is terrible from a HCU optimization perspective, but since rand seems to
+        // produce only random numbers in a 0 to 2ˆx-1 range, we need to curate the output
+        ebool badMove = FHE.eq(computerMove, FHE.asEuint8(0));
+        // If the computer move is 0, we set it to 1 (Rock)
+        // quite a hacky way to ensure the computer always plays a valid move, that makes
+        // double probability of getting a Rock move
+        computerMove = FHE.select(badMove, FHE.asEuint8(1), computerMove);
         // Store the guest move in the game
         games[gameId].guestMove = computerMove;
         // Check if both moves are equal, so game is a draw
@@ -256,12 +265,12 @@ contract FHERPS is SepoliaConfig {
         packedMoves = FHE.or(packedMoves, computerMove);
         // Get the game result by applying the hostWinningMask to 1 shifted packed moves times left
         euint16 gameResult = FHE.and(hostWinningMask, FHE.asEuint16(FHE.shl(FHE.asEuint8(1), packedMoves)));
-        // If the result is different than 0, the host wins
+        // If the result is different than 0, the host wins, if its 0 either the guest wins or its was a draw
         ebool hostWins = FHE.ne(gameResult, FHE.asEuint16(0));
         // Set the game result
         games[gameId].encryptedResult = FHE.select(hostWins, FHE.asEuint8(1), FHE.asEuint8(2));
-        // If the game was a draw, we overwrite the encryptedResult with 0, otherwise we keep the value
-        games[gameId].encryptedResult = FHE.select(draw, FHE.asEuint8(0), games[gameId].encryptedResult);
+        // If the game was a draw, we overwrite the encryptedResult with 3, otherwise we keep the value
+        games[gameId].encryptedResult = FHE.select(draw, FHE.asEuint8(3), games[gameId].encryptedResult);
         // Allow the contract and the player to operate on the game fields
         FHE.allowThis(games[gameId].host);
         FHE.allow(games[gameId].host, msg.sender);
