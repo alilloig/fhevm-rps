@@ -355,7 +355,7 @@ describe("FHE Rock Paper Scissors Testing", function () {
 
       const hostMoveEncrypted = await fherpsContract.connect(signers.alice).hostMove(gameId);
       const hostMoveDecrypted = await fhevm.userDecryptEuint(FhevmType.euint8, hostMoveEncrypted, fherpsContractAddress, signers.alice);
-      expect(hostMoveDecrypted).to.eq(ROCK);
+      expect(hostMoveDecrypted).to.eq(SCISSORS);
     });
 
     it("should create a single player game and allow host to see guest(computer) move", async function () {
