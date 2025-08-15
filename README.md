@@ -1,6 +1,6 @@
 # FHEVM Rock Paper Scissors
 
-An FHEVM RPS Solidity implementation that allows players to play Rock-Paper-Scissors games privately.
+A [Zama's FHEVM](https://docs.zama.ai/protocol/solidity-guides/getting-started/overview) RPS Solidity implementation that allows players to play Rock-Paper-Scissors games privately.
 
 ## Considerations
 
